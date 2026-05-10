@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, AlertTriangle, TrendingUp, Brain, Shield, Lock, ExternalLink } from 'lucide-react';
+import { Check, AlertTriangle, TrendingUp, Brain, Shield, Lock, ExternalLink, Newspaper } from 'lucide-react';
 
 const C = {
   bg: '#f8fafc',
@@ -108,6 +108,7 @@ export default function App() {
 
   const tabs = [
     { id: 'marketview', label: '🧭 Market View', locked: false },
+    { id: 'news', label: '📰 News Impact', locked: false },
     { id: 'premarket', label: '📋 Pre-Market', locked: !mvComplete },
     { id: 'trade', label: '⚡ Before Trade', locked: !mvComplete },
     { id: 'posttrade', label: '📝 Post-Trade', locked: false },
@@ -352,6 +353,9 @@ export default function App() {
           </div>
         )}
 
+        {/* ── NEWS IMPACT ── */}
+        {activeTab === 'news' && <NewsImpact />}
+
         {/* Weekly Reflection */}
         <div style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)', borderRadius: 12, padding: '20px 24px', marginTop: 16 }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'white', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -363,6 +367,121 @@ export default function App() {
         </div>
 
       </div>
+    </div>
+  );
+}
+
+const EXAMPLES = [
+  'RBI cuts repo rate by 25bps',
+  'US markets fall 2% on recession fears',
+  'FII sell ₹8000 crore in Indian equities',
+  'India GDP grows 7.2%, beats estimate of 6.8%',
+  'Crude oil surges 5% on Middle East tensions',
+  'HDFC Bank Q4 profit up 18%, beats estimates',
+];
+
+function NewsImpact() {
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const analyze = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
+    setResult(null);
+    setError('');
+    const prompt = `You are a stock market analyst specializing in Indian markets. A trader has shared this news headline or summary:\n\n"${input}"\n\nAnalyze how this news is likely to impact the NIFTY 50 index. Respond ONLY in valid JSON with no markdown, no backticks, no explanation outside the JSON. Use exactly this structure:\n\n{"direction":"bullish or bearish or neutral or mixed","intensity":number 1-10,"intensity_label":"Low or Moderate or High or Very High","headline_summary":"2-3 word category","nifty_move_estimate":"estimated % move range","why":"2-3 sentences explaining mechanism","key_sectors_affected":["sector1","sector2"],"confidence":"High or Medium or Low","watch_out_for":"one sentence"}`;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      });
+      const data = await res.json();
+      const raw = data.content.map(b => b.text || '').join('');
+      const clean = raw.replace(/```json|```/g, '').trim();
+      setResult(JSON.parse(clean));
+    } catch {
+      setError('Something went wrong. Try again.');
+    }
+    setLoading(false);
+  };
+
+  const dirColor = { bullish: { bg: '#f0fdf4', border: '#86efac', text: '#15803d' }, bearish: { bg: '#fef2f2', border: '#fca5a5', text: '#dc2626' }, neutral: { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' }, mixed: { bg: '#eff6ff', border: '#93c5fd', text: '#2563eb' } };
+  const dirEmoji = { bullish: '📈 Bullish', bearish: '📉 Bearish', neutral: '➡️ Neutral', mixed: '↔️ Mixed' };
+
+  return (
+    <div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 }}>News → NIFTY Impact</div>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>Paste a headline. Get direction, intensity and sector impact.</div>
+
+      <div style={card}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>News headline or summary</div>
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder={'e.g. RBI cuts repo rate by 25bps\nor: US Fed signals no cuts in 2025\nor: FII sell ₹8000cr in Indian equities'}
+          style={{ width: '100%', border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', resize: 'none', minHeight: 80, outline: 'none', color: C.text, background: C.white, boxSizing: 'border-box' }}
+        />
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+          <button onClick={analyze} disabled={loading || !input.trim()}
+            style={{ padding: '10px 20px', borderRadius: 8, border: 'none', fontSize: 14, fontWeight: 600, cursor: loading || !input.trim() ? 'not-allowed' : 'pointer', background: loading || !input.trim() ? C.grayBorder : '#185FA5', color: 'white', opacity: loading || !input.trim() ? 0.6 : 1 }}>
+            {loading ? 'Analyzing...' : 'Analyze NIFTY impact →'}
+          </button>
+          <button onClick={() => { setInput(''); setResult(null); setError(''); }}
+            style={{ padding: '10px 16px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, cursor: 'pointer', background: C.white, color: C.muted }}>
+            Clear
+          </button>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 12, color: C.hint, marginBottom: 6 }}>Try an example:</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {EXAMPLES.map(ex => (
+              <button key={ex} onClick={() => setInput(ex)}
+                style={{ fontSize: 12, padding: '4px 12px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.grayBg, color: C.muted, cursor: 'pointer' }}>
+                {ex}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {error && <div style={{ ...card, color: C.red, fontSize: 14 }}>{error}</div>}
+
+      {result && (() => {
+        const dc = dirColor[result.direction] || dirColor.neutral;
+        const barPct = Math.round((result.intensity / 10) * 100);
+        return (
+          <div style={{ background: dc.bg, border: `1px solid ${dc.border}`, borderRadius: 12, padding: '16px 20px', marginBottom: 12 }}>
+            <div style={{ fontSize: 22, fontWeight: 600, color: dc.text, marginBottom: 4 }}>{dirEmoji[result.direction] || result.direction}</div>
+            <div style={{ fontSize: 13, color: dc.text, opacity: 0.75, marginBottom: 10 }}>{result.headline_summary}</div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 12, color: dc.text, minWidth: 90 }}>Impact: {result.intensity_label}</span>
+              <div style={{ flex: 1, height: 8, background: 'rgba(0,0,0,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${barPct}%`, height: '100%', background: dc.text, borderRadius: 4, transition: 'width 0.5s' }} />
+              </div>
+              <span style={{ fontSize: 12, color: dc.text }}>{result.intensity}/10</span>
+            </div>
+
+            <div style={{ fontSize: 13, fontWeight: 600, color: dc.text, marginBottom: 10 }}>Estimated move: {result.nifty_move_estimate}</div>
+            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6, marginBottom: 12 }}>{result.why}</div>
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Sectors to watch</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {result.key_sectors_affected.map(s => (
+                  <span key={s} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: 'rgba(0,0,0,0.06)', color: C.text }}>{s}</span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 13, color: C.muted, fontStyle: 'italic', marginBottom: 8 }}>⚠️ {result.watch_out_for}</div>
+            <div style={{ fontSize: 12, color: C.hint }}>Confidence: {result.confidence}</div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
