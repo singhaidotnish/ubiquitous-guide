@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Wheel — Nish Trading Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'JetBrains Mono', monospace; background: #0a0a0a; color: #e0e0e0; display: flex; flex-direction: column; }
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex; align-items: center; background: #0d0d0d;
+  border-bottom: 1px solid #1a1a1a; padding: 0 14px; flex-shrink: 0; gap: 0;
+}
+.top-logo { font-size: 11px; color: #d4a017; font-weight: 700; letter-spacing: 0.08em; margin-right: 20px; white-space: nowrap; }
+.tab {
+  padding: 11px 14px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; color: #444; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap;
+}
+.tab.active { color: #d4a017; border-bottom-color: #d4a017; }
+.tab:hover:not(.active) { color: #888; }
+
+/* ── LAYOUT ── */
+.main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+.left-panel { width: 360px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #0a0a0a; }
+.right-panel { flex: 1; background: #0c0c0c; border-left: 1px solid #1a1a1a; overflow-y: auto; min-width: 0; }
+
+canvas { cursor: pointer; display: block; }
+
+/* ── RIGHT PANEL ── */
+.detail-wrap { padding: 16px 18px; }
+
+.stock-hero { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.stock-nm { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+.stock-fullnm { font-size: 10px; color: #444; margin-top: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+.price-block { text-align: right; }
+.ltp { font-size: 26px; font-weight: 700; color: #d4a017; font-variant-numeric: tabular-nums; }
+.chg-badge { font-size: 11px; padding: 3px 8px; border-radius: 3px; font-weight: 600; display: inline-block; margin-top: 3px; }
+.up { background: #0a2a1a; color: #27ae60; }
+.dn { background: #2a0a0a; color: #e74c3c; }
+
+/* 52W bar */
+.bar52 { margin-bottom: 12px; }
+.bar52-track { height: 3px; background: #1a1a1a; border-radius: 2px; position: relative; margin: 5px 0; }
+.bar52-fill { position: absolute; top: 0; height: 100%; width: 100%; background: linear-gradient(90deg,#e74c3c,#d4a017 50%,#27ae60); border-radius: 2px; opacity: 0.35; }
+.bar52-dot { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 8px; height: 8px; background: #d4a017; border-radius: 50%; border: 2px solid #0a0a0a; }
+.bar52-labels { display: flex; justify-content: space-between; font-size: 9px; color: #444; }
+
+/* Status pills */
+.status-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.spill {
+  font-size: 9px; padding: 4px 10px; border-radius: 3px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  border: 1px solid transparent; transition: all 0.15s;
+}
+.spill.active { border-color: currentColor; }
+.s-w { color: #7e8af1; } .s-g { color: #d4a017; } .s-h { color: #27ae60; } .s-a { color: #e74c3c; }
+
+/* Section header */
+.sec-hd {
+  font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #333;
+  margin: 16px 0 8px; padding-bottom: 5px; border-bottom: 1px solid #161616;
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+/* Data table */
+.data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 4px; }
+.data-table th {
+  text-align: left; color: #333; font-weight: 400; font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 8px; border-bottom: 1px solid #161616;
+}
+.data-table th.r { text-align: right; }
+.data-table td { padding: 6px 8px; border-bottom: 1px solid #0f0f0f; color: #bbb; vertical-align: middle; }
+.data-table td.label { color: #555; font-size: 10px; width: 38%; }
+.data-table td.val { color: #ddd; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.data-table td.green { color: #27ae60; font-weight: 600; text-align: right; }
+.data-table td.amber { color: #d4a017; font-weight: 600; text-align: right; }
+.data-table td.red { color: #e74c3c; font-weight: 600; text-align: right; }
+.data-table tr:last-child td { border-bottom: none; }
+
+/* Tech pills */
+.tech-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.tech-pill { flex: 1; min-width: 72px; background: #111; border: 1px solid #1a1a1a; border-radius: 5px; padding: 8px 10px; }
+.tech-pill-label { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.08em; }
+.tech-pill-val { font-size: 14px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.tech-pill-sig { font-size: 8px; margin-top: 2px; }
+.sig-buy { color: #27ae60; } .sig-sell { color: #e74c3c; } .sig-neut { color: #666; }
+
+/* Zone table */
+.zone-tbl { width: 100%; border-collapse: collapse; }
+.zone-tbl td { padding: 7px 8px; border-bottom: 1px solid #0f0f0f; font-size: 11px; }
+.zone-tbl td.zlabel { color: #444; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; width: 32%; }
+.zone-tbl td.zprice { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; width: 28%; }
+.zone-tbl td.zdesc { color: #444; font-size: 10px; }
+.z1 { color: #e74c3c; } .z2 { color: #d4a017; } .z3 { color: #27ae60; }
+.zone-tbl tr:last-child td { border-bottom: none; }
+
+/* AI box */
+.ai-box { background: #0f0f0f; border: 1px solid #1a1a1a; border-radius: 6px; padding: 14px; font-size: 11px; line-height: 1.75; color: #aaa; }
+.ai-loading { display: flex; align-items: center; gap: 8px; color: #444; font-size: 11px; }
+.pulse { width: 6px; height: 6px; background: #d4a017; border-radius: 50%; animation: pulse 1s infinite; flex-shrink: 0; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.ai-section-title { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: #444; margin-bottom: 4px; }
+.ai-section-body { font-size: 11px; line-height: 1.75; color: #bbb; margin-bottom: 12px; }
+
+/* Note */
+.note-area {
+  width: 100%; background: #111; border: 1px solid #1e1e1e; border-radius: 5px;
+  color: #ccc; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  padding: 10px; resize: vertical; min-height: 80px; outline: none; line-height: 1.6;
+}
+.note-area:focus { border-color: #d4a017; }
+
+/* Empty */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #333; text-align: center; padding: 40px; }
+.empty-ico { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+
+/* Sector list table */
+.sector-stock-row { cursor: pointer; transition: background 0.1s; }
+.sector-stock-row:hover td { background: #141414; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-logo">◎ SINGFORGE TOOLS</div>
+  <div class="tab active" id="tabEq"    onclick="switchTab('eq')">Fundamentals</div>
+  <div class="tab"        id="tabTech"  onclick="switchTab('tech')">Technicals</div>
+  <div class="tab"        id="tabOpts"  onclick="switchTab('opts')">Options</div>
+  <div class="tab"        id="tabAI"    onclick="switchTab('ai')">AI Analysis</div>
+  <div class="tab"        id="tabNotes" onclick="switchTab('notes')">Notes</div>
+</div>
+
+<div class="main">
+  <div class="left-panel">
+    <canvas id="wheel" width="340" height="340"></canvas>
+  </div>
+  <div class="right-panel" id="rightPanel">
+    <div class="empty" style="height:100%">
+      <div class="empty-ico">◎</div>
+      <div style="font-size:13px;color:#444">Select a sector, then a stock</div>
+      <div style="font-size:10px;color:#333;margin-top:6px">Status dots: 🟡 GTT &nbsp; 🟢 Holding &nbsp; ⚪ Watching &nbsp; 🔴 Avoid</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────
+   STOCK DATA — edit zones, notes, status here
+   or replace with a fetch() from a JSON file
+───────────────────────────────────────── */
+const STOCKS = {
+  IT:[
+    {sym:"LTTS",      name:"L&T Technology Services", ltp:4820,  chg:1.4,  h52:5900,  l52:3140, pe:28.5,pb:6.2, roe:22,eps:169, epsG:18,revG:14,npm:14.8,promoter:73.8,div:1.2, debt:"Zero",mcap:"50,400 Cr",  status:"gtt",     zones:[4700,4550,4350],zDesc:["Near 52W range","Strong support","Max dip target"],   note:"Lakshya 31 plan. 13-15% CAGR target. SWC divestiture clears noise.",rsi:38,ema20:4880,ema50:5100,ema200:4920,macd:-85, signal:-60,bb_u:5200,bb_l:4440,vol:"Avg",      iv:28,pcr:0.80,atm:4800},
+    {sym:"PERSISTENT",name:"Persistent Systems",       ltp:5210,  chg:-0.8, h52:6800,  l52:4400, pe:55,  pb:12,  roe:24,eps:95,  epsG:35,revG:32,npm:11.2,promoter:31.5,div:0.4, debt:"Zero",mcap:"80,100 Cr",  status:"watching",zones:[5000,4800,4600],zDesc:["Retest breakout","Strong demand","Extreme fear zone"],    note:"Best-in-class growth. High PE risk if growth slows. Wait for dip.",  rsi:45,ema20:5280,ema50:5500,ema200:5100,macd:-120,signal:-80,bb_u:5700,bb_l:4720,vol:"Low",      iv:32,pcr:0.90,atm:5200},
+    {sym:"COFORGE",   name:"Coforge",                  ltp:7340,  chg:2.1,  h52:9000,  l52:5800, pe:48,  pb:9,   roe:21,eps:153, epsG:28,revG:26,npm:10.5,promoter:60.2,div:0.6, debt:"Low", mcap:"44,200 Cr",  status:"gtt",     zones:[7100,6800,6500],zDesc:["GTT trigger level","Strong support zone","Deep dip entry"], note:"GTT at 7100. Strong deal wins. Promoter backed. Watch volume.",      rsi:52,ema20:7200,ema50:7500,ema200:6900,macd:40,  signal:20, bb_u:7900,bb_l:6780,vol:"High",     iv:35,pcr:0.75,atm:7300},
+    {sym:"INFY",      name:"Infosys",                  ltp:1580,  chg:-0.3, h52:1980,  l52:1350, pe:22,  pb:7,   roe:32,eps:71.8,epsG:8, revG:7, npm:17.2,promoter:14.8,div:3.2, debt:"Zero",mcap:"6,56,000 Cr",status:"watching",zones:[1520,1480,1420],zDesc:["First support","Strong buy zone","Capitulation zone"],    note:"FY26 guidance thin. Need show-me quarter. Large cap safety play.",   rsi:42,ema20:1610,ema50:1680,ema200:1720,macd:-42, signal:-28,bb_u:1750,bb_l:1410,vol:"Avg",      iv:18,pcr:1.10,atm:1580},
+    {sym:"TCS",       name:"TCS",                      ltp:3620,  chg:0.5,  h52:4100,  l52:3200, pe:24,  pb:12,  roe:48,eps:150, epsG:10,revG:9, npm:24.5,promoter:71.7,div:4.1, debt:"Zero",mcap:"13,10,000 Cr",status:"watching",zones:[3500,3400,3250],zDesc:["Support","Strong zone","Best dip"],                     note:"Quality anchor. Highest margins in sector. Dividend play.",         rsi:46,ema20:3640,ema50:3750,ema200:3850,macd:-55, signal:-30,bb_u:3900,bb_l:3340,vol:"Avg",      iv:16,pcr:1.20,atm:3600},
+    {sym:"HCLTECH",   name:"HCL Technologies",         ltp:1520,  chg:0.9,  h52:1900,  l52:1250, pe:20,  pb:5.5, roe:28,eps:76,  epsG:12,revG:10,npm:18.5,promoter:60.8,div:5.2, debt:"Zero",mcap:"4,12,000 Cr",status:"watching",zones:[1480,1440,1380],zDesc:["Support","Strong buy","Max dip"],                      note:"Dividend yield play. Products business differentiator. RSI oversold.", rsi:41,ema20:1540,ema50:1620,ema200:1680,macd:-38, signal:-22,bb_u:1700,bb_l:1340,vol:"Avg",      iv:20,pcr:1.00,atm:1500},
+    {sym:"LTIM",      name:"LTIMindtree",              ltp:4950,  chg:-1.2, h52:7100,  l52:4600, pe:30,  pb:7,   roe:23,eps:165, epsG:14,revG:15,npm:13.2,promoter:68.6,div:1.8, debt:"Zero",mcap:"1,47,000 Cr",status:"gtt",     zones:[4800,4650,4400],zDesc:["GTT level","Strong support","Panic zone"],            note:"35% drawdown despite strong Q4. Integration done. Dip buy setup.",  rsi:34,ema20:5100,ema50:5400,ema200:5600,macd:-180,signal:-120,bb_u:5500,bb_l:4400,vol:"Avg",      iv:30,pcr:0.70,atm:5000},
+    {sym:"OFSS",      name:"Oracle Fin Services",      ltp:10200, chg:3.8,  h52:10800, l52:7200, pe:35,  pb:14,  roe:40,eps:291, epsG:20,revG:18,npm:38,  promoter:72.8,div:8.5, debt:"Zero",mcap:"88,700 Cr",  status:"watching",zones:[9800,9400,8900],zDesc:["Post-spike pullback","Strong support","Deep revert"],     note:"Spiked 67%. Bear call spread after spike fades. High IV — sell.",   rsi:72,ema20:9500,ema50:8800,ema200:8200,macd:380, signal:280,bb_u:10500,bb_l:8500,vol:"VeryHigh",iv:42,pcr:0.60,atm:10200},
+  ],
+  CAPGDS:[
+    {sym:"SIEMENS",name:"Siemens India",ltp:6400,chg:1.1,h52:8200,l52:5800,pe:70,pb:14,roe:20,eps:91, epsG:25,revG:22,npm:12.5,promoter:75.0,div:0.6,debt:"Zero",mcap:"2,27,000 Cr",status:"watching",zones:[6100,5900,5600],zDesc:["Support","Demand zone","Max dip"],note:"Infra cycle play. Premium always justified. Order book 2x revenue.",rsi:48,ema20:6500,ema50:6800,ema200:6200,macd:-85,signal:-50,bb_u:7100,bb_l:5700,vol:"Low",iv:25,pcr:0.90,atm:6400},
+    {sym:"ABB",    name:"ABB India",   ltp:8100,chg:-0.6,h52:10000,l52:7200,pe:65,pb:15,roe:24,eps:124,epsG:30,revG:28,npm:13.8,promoter:75.0,div:0.4,debt:"Zero",mcap:"1,71,000 Cr",status:"watching",zones:[7800,7500,7100],zDesc:["Support","Strong zone","Extreme dip"],note:"Energy transition + data centre capex play. Strong order pipeline.",rsi:44,ema20:8250,ema50:8600,ema200:8000,macd:-110,signal:-70,bb_u:8900,bb_l:7300,vol:"Low",iv:22,pcr:0.85,atm:8100},
+    {sym:"BHEL",   name:"BHEL",        ltp:218,  chg:2.3, h52:310,  l52:170,  pe:80,pb:4, roe:6, eps:2.7,epsG:45,revG:18,npm:3.2, promoter:63.2,div:0.5,debt:"Mod", mcap:"75,800 Cr",  status:"watching",zones:[205,195,180],  zDesc:["Support","Demand zone","52W low region"],note:"Turnaround story. High PE risk. Govt capex dependent.",         rsi:55,ema20:215, ema50:200, ema200:195, macd:8,   signal:4,  bb_u:240, bb_l:196, vol:"High",iv:40,pcr:0.70,atm:220},
+  ],
+  RETAIL:[
+    {sym:"TRENT",name:"Trent",ltp:5800,chg:0.7,h52:8300,l52:5200,pe:110,pb:22,roe:20,eps:52,epsG:55,revG:45,npm:7.8,promoter:37.0,div:0.2,debt:"Low",mcap:"2,05,000 Cr",status:"holding",zones:[5500,5200,4900],zDesc:["Add zone","Strong buy","Panic buy"],note:"Holding. Core position. Zudio expansion unbeatable. Add at 5500.",rsi:50,ema20:5750,ema50:6200,ema200:6800,macd:-280,signal:-180,bb_u:6500,bb_l:5100,vol:"Avg",iv:35,pcr:0.65,atm:5800},
+    {sym:"DMART", name:"DMart",  ltp:3800,chg:-0.4,h52:5200,l52:3500,pe:65,pb:11,roe:17,eps:58,epsG:18,revG:16,npm:8.2,promoter:74.6,div:0.0,debt:"Zero",mcap:"2,47,000 Cr",status:"watching",zones:[3650,3500,3300],zDesc:["Support","Demand zone","52W low region"],note:"Compounding machine. Wait for deep dip. Q-comm headwind.",      rsi:42,ema20:3900,ema50:4100,ema200:4400,macd:-150,signal:-90, bb_u:4200,bb_l:3400,vol:"Low",iv:20,pcr:1.00,atm:3800},
+  ],
+  AUTO:[
+    {sym:"BAJAJ-AUTO",name:"Bajaj Auto",        ltp:9200,chg:1.5, h52:12000,l52:8000,pe:30,pb:8,  roe:28,eps:307,epsG:22,revG:18,npm:18.2,promoter:54.9,div:4.8,debt:"Zero",mcap:"2,58,000 Cr",status:"watching",zones:[8900,8500,8000],zDesc:["Support","Demand zone","52W low region"],note:"EV + export story solid. CNG 3W monopoly. Strong dividend.",  rsi:46,ema20:9350,ema50:9800,ema200:10200,macd:-200,signal:-140,bb_u:10200,bb_l:8200,vol:"Avg",iv:20,pcr:1.10,atm:9200},
+    {sym:"M&M",       name:"Mahindra & Mahindra",ltp:3050,chg:0.8, h52:3600, l52:2200,pe:28,pb:6,  roe:18,eps:109,epsG:35,revG:24,npm:10.5,promoter:19.4,div:1.6,debt:"Low", mcap:"3,78,000 Cr",status:"watching",zones:[2900,2750,2600],zDesc:["Support","Demand zone","Deep dip"],          note:"SUV cycle momentum. Farm equipment + EV optionality.",        rsi:52,ema20:3020,ema50:2900,ema200:2700,macd:40, signal:20,  bb_u:3250,bb_l:2850,vol:"Avg",iv:22,pcr:0.95,atm:3000},
+  ],
+  BANK:[
+    {sym:"HDFCBANK", name:"HDFC Bank",  ltp:1750,chg:0.3,h52:1950,l52:1450,pe:17,pb:2.4,roe:14,eps:103,epsG:15,revG:20,npm:24.5,promoter:0,div:3.2,debt:"N/A",mcap:"13,30,000 Cr",status:"watching",zones:[1700,1650,1580],zDesc:["Support","Strong zone","Demand area"],note:"NIM expansion awaited. CASA ratio watch. Core holding candidate.",rsi:52,ema20:1730,ema50:1680,ema200:1600,macd:22,signal:10,bb_u:1850,bb_l:1650,vol:"High",iv:16,pcr:1.20,atm:1750},
+    {sym:"ICICIBANK",name:"ICICI Bank",  ltp:1380,chg:0.6,h52:1500,l52:1000,pe:18,pb:3.2,roe:18,eps:76, epsG:20,revG:18,npm:28.2,promoter:0,div:1.5,debt:"N/A",mcap:"9,70,000 Cr", status:"watching",zones:[1340,1300,1250],zDesc:["First support","Strong buy","Deep dip"],       note:"Best quality private bank. Asset quality best in class.",       rsi:58,ema20:1360,ema50:1300,ema200:1200,macd:35,signal:20,bb_u:1480,bb_l:1280,vol:"High",iv:15,pcr:1.10,atm:1380},
+  ],
+  INDEX:[
+    {sym:"NIFTY",    name:"Nifty 50",   ltp:24300,chg:0.4, h52:26300,l52:21000,pe:21,pb:3.8,roe:14,eps:1157,epsG:14,revG:12,npm:18,promoter:0,div:1.2,debt:"N/A",mcap:"Index",status:"watching",zones:[24000,23500,23000],zDesc:["Support","Strong zone","Major support"],note:"Weekly options range 23800-24500. VIX watch.",rsi:52,ema20:24100,ema50:23500,ema200:22800,macd:180,signal:100,bb_u:25200,bb_l:23400,vol:"Avg",iv:14,pcr:1.15,atm:24300},
+    {sym:"BANKNIFTY",name:"Bank Nifty",  ltp:52400,chg:0.2, h52:57000,l52:44000,pe:15,pb:2.8,roe:16,eps:3493,epsG:17,revG:19,npm:22,promoter:0,div:2.0,debt:"N/A",mcap:"Index",status:"watching",zones:[52000,51000,50000],zDesc:["Support","Strong zone","Major support"],note:"High beta. Expiry plays. PCR key indicator.",rsi:50,ema20:52000,ema50:51000,ema200:49000,macd:150,signal:80,bb_u:54000,bb_l:50800,vol:"Avg",iv:16,pcr:1.05,atm:52400},
+  ],
+};
+
+const SECTORS = [
+  {id:"IT",     label:"IT",      color:"#0d2035", accent:"#4a9eff"},
+  {id:"CAPGDS", label:"CapGds",  color:"#0d2010", accent:"#4aff9e"},
+  {id:"RETAIL", label:"Retail",  color:"#200d20", accent:"#ff9eff"},
+  {id:"AUTO",   label:"Auto",    color:"#20180d", accent:"#ffaa4a"},
+  {id:"BANK",   label:"Banks",   color:"#0d1520", accent:"#4accff"},
+  {id:"INDEX",  label:"F&O Idx", color:"#200d0d", accent:"#ff6464"},
+];
+
+/* ── WHEEL SETUP ── */
+const canvas = document.getElementById('wheel');
+const ctx    = canvas.getContext('2d');
+const cx=170, cy=170, R0=35, R1=85, R2=162;
+let selSec=null, selStk=null, activeTab='eq', hov=null;
+const notes = {};
+
+function getStocks(sec){ return STOCKS[sec.id] || []; }
+
+/* ── DRAW ── */
+function drawWheel(){
+  ctx.clearRect(0,0,340,340);
+  ctx.beginPath(); ctx.arc(cx,cy,R2+4,0,Math.PI*2); ctx.fillStyle='#0d0d0d'; ctx.fill();
+
+  // centre button
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,R0);
+  g.addColorStop(0,'#ffd700'); g.addColorStop(0.6,'#8b6914'); g.addColorStop(1,'#2a1800');
+  ctx.beginPath(); ctx.arc(cx,cy,R0,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  ctx.fillStyle='#000'; ctx.font='bold 9px JetBrains Mono';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('START',cx,cy);
+
+  if(!selSec){
+    SECTORS.forEach((sec,i)=>{
+      const n=SECTORS.length, a0=i/n*Math.PI*2-Math.PI/2, a1=(i+1)/n*Math.PI*2-Math.PI/2, mid=(a0+a1)/2;
+      const isH = hov===`s${i}`;
+      // outer
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R2,a0,a1); ctx.closePath();
+      ctx.fillStyle = isH ? shiftColor(sec.color) : sec.color; ctx.fill();
+      ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=2; ctx.stroke();
+      // inner
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R1,a0,a1); ctx.closePath();
+      ctx.fillStyle = isH ? '#1e1e1e' : '#141414'; ctx.fill();
+      ctx.strokeStyle='#0a0a0a'; ctx.stroke();
+      // outer label
+      const lr = (R1+R2)/2;
+      ctx.fillStyle = sec.accent; ctx.font = `${isH?'bold ':''}10px JetBrains Mono`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(sec.label, cx+lr*Math.cos(mid), cy+lr*Math.sin(mid));
+      // count
+      ctx.fillStyle='#444'; ctx.font='9px JetBrains Mono';
+      ctx.fillText(getStocks(sec).length, cx+((R0+R1)/2)*Math.cos(mid), cy+((R0+R1)/2)*Math.sin(mid));
+    });
+  } else {
+    const stocks = getStocks(selSec), n = stocks.length;
+    ctx.beginPath(); ctx.arc(cx,cy,R2+4,0,Math.PI*2); ctx.fillStyle='#0c0c0c'; ctx.fill();
+    stocks.forEach((stk,i)=>{
+      const a0=i/n*Math.PI*2-Math.PI/2, a1=(i+1)/n*Math.PI*2-Math.PI/2, mid=(a0+a1)/2;
+      const isSel = selStk && selStk.sym===stk.sym, isH = hov===`t${i}`;
+      // outer
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R2,a0,a1); ctx.closePath();
+      ctx.fillStyle = isSel ? selSec.color : (isH ? '#1a1a1a' : '#121212'); ctx.fill();
+      ctx.strokeStyle='#0a0a0a'; ctx.lineWidth=isSel?2:1.5; ctx.stroke();
+      if(isSel){ ctx.strokeStyle=selSec.accent; ctx.stroke(); }
+      // inner
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R1,a0,a1); ctx.closePath();
+      ctx.fillStyle='#0f0f0f'; ctx.fill(); ctx.strokeStyle='#0a0a0a'; ctx.stroke();
+      // status dot
+      const sc={watching:'#2a2a2a',gtt:'#d4a017',holding:'#27ae60',avoid:'#e74c3c'};
+      ctx.beginPath(); ctx.arc(cx+(R1+10)*Math.cos(mid), cy+(R1+10)*Math.sin(mid), 4,0,Math.PI*2);
+      ctx.fillStyle=sc[stk.status]||'#333'; ctx.fill();
+      // symbol
+      const lr=(R1+R2)/2;
+      ctx.save();
+      ctx.translate(cx+lr*Math.cos(mid), cy+lr*Math.sin(mid));
+      ctx.rotate(mid+Math.PI/2);
+      ctx.fillStyle = isSel ? selSec.accent : '#888';
+      ctx.font = `${isSel?'bold ':''}9px JetBrains Mono`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(stk.sym.length>8?stk.sym.slice(0,7)+'…':stk.sym, 0, 0);
+      ctx.restore();
+    });
+    // back label
+    ctx.fillStyle=selSec.accent; ctx.font='bold 8px JetBrains Mono';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('← BACK', cx, cy-11);
+    ctx.fillStyle='#444'; ctx.font='7px JetBrains Mono';
+    ctx.fillText(selSec.label, cx, cy+2);
+  }
+}
+
+function shiftColor(hex){
+  return hex.replace(/([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i, (_,r,g,b)=>{
+    const shift = v => Math.min(255,parseInt(v,16)+24).toString(16).padStart(2,'0');
+    return shift(r)+shift(g)+shift(b);
+  });
+}
+
+/* ── EVENTS ── */
+canvas.addEventListener('click', e=>{
+  const r=canvas.getBoundingClientRect(), dx=e.clientX-r.left-cx, dy=e.clientY-r.top-cy;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  let ang=Math.atan2(dy,dx)+Math.PI/2; if(ang<0)ang+=Math.PI*2;
+  if(dist<R0){ reset(); return; }
+  if(!selSec){
+    if(dist<R2){
+      const i=Math.floor(ang/(Math.PI*2)*SECTORS.length)%SECTORS.length;
+      selSec=SECTORS[i]; selStk=null; renderSectorList();
+    }
+  } else {
+    const stocks=getStocks(selSec);
+    if(dist>R1&&dist<R2){
+      const i=Math.floor(ang/(Math.PI*2)*stocks.length)%stocks.length;
+      selStk=stocks[i]; renderTab();
+    } else if(dist<R1){ selSec=null; selStk=null; renderEmpty(); }
+  }
+  drawWheel();
+});
+
+canvas.addEventListener('mousemove', e=>{
+  const r=canvas.getBoundingClientRect(), dx=e.clientX-r.left-cx, dy=e.clientY-r.top-cy;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  let ang=Math.atan2(dy,dx)+Math.PI/2; if(ang<0)ang+=Math.PI*2;
+  const prev=hov; hov=null;
+  if(dist>R0){
+    if(!selSec&&dist<R2) hov=`s${Math.floor(ang/(Math.PI*2)*SECTORS.length)%SECTORS.length}`;
+    else if(selSec&&dist>R1&&dist<R2) hov=`t${Math.floor(ang/(Math.PI*2)*getStocks(selSec).length)%getStocks(selSec).length}`;
+  }
+  canvas.style.cursor=(hov||dist<R0)?'pointer':'default';
+  if(prev!==hov) drawWheel();
+});
+
+/* ── TAB SWITCHING ── */
+function switchTab(t){
+  activeTab=t;
+  ['eq','tech','opts','ai','notes'].forEach(x=>{
+    const el=document.getElementById('tab'+x.charAt(0).toUpperCase()+x.slice(1));
+    if(el) el.classList.toggle('active', x===t);
+  });
+  if(selStk) renderTab();
+}
+
+function renderTab(){
+  if(!selStk) return;
+  ({eq:renderEquity, tech:renderTech, opts:renderOpts, ai:renderAI, notes:renderNotes})[activeTab]?.();
+}
+
+/* ── HERO BLOCK (shared across tabs) ── */
+function heroHTML(s){
+  const pct = ((s.ltp-s.l52)/(s.h52-s.l52)*100).toFixed(0);
+  const cc = s.chg>=0?'up':'dn', cs = s.chg>=0?'+':'';
+  const statusMeta = [
+    {k:'watching',l:'Watching',c:'s-w'},
+    {k:'gtt',     l:'GTT Active',c:'s-g'},
+    {k:'holding', l:'Holding',  c:'s-h'},
+    {k:'avoid',   l:'Avoid',    c:'s-a'},
+  ];
+  return `
+  <div class="stock-hero">
+    <div>
+      <div class="stock-nm">${s.sym}</div>
+      <div class="stock-fullnm">${s.name}</div>
+    </div>
+    <div class="price-block">
+      <div class="ltp">₹${s.ltp.toLocaleString('en-IN')}</div>
+      <span class="chg-badge ${cc}">${cs}${s.chg}%</span>
+    </div>
+  </div>
+  <div class="bar52">
+    <div class="bar52-track">
+      <div class="bar52-fill"></div>
+      <div class="bar52-dot" style="left:${pct}%"></div>
+    </div>
+    <div class="bar52-labels">
+      <span>L ₹${s.l52.toLocaleString('en-IN')}</span>
+      <span style="color:#d4a017">${pct}% from low</span>
+      <span>H ₹${s.h52.toLocaleString('en-IN')}</span>
+    </div>
+  </div>
+  <div class="status-row">
+    ${statusMeta.map(m=>`<span class="spill ${m.c}${s.status===m.k?' active':''}" onclick="setStatus('${m.k}')">${m.l}</span>`).join('')}
+  </div>`;
+}
+
+function zoneRows(s){
+  return `
+  <div class="sec-hd">GTT Entry Zones</div>
+  <table class="zone-tbl">
+    <tr><td class="zlabel">Z1 Aggressive</td><td class="zprice z1">₹${s.zones[0].toLocaleString('en-IN')}</td><td class="zdesc">${s.zDesc[0]}</td></tr>
+    <tr><td class="zlabel">Z2 Strong Buy</td><td class="zprice z2">₹${s.zones[1].toLocaleString('en-IN')}</td><td class="zdesc">${s.zDesc[1]}</td></tr>
+    <tr><td class="zlabel">Z3 Best Dip</td> <td class="zprice z3">₹${s.zones[2].toLocaleString('en-IN')}</td><td class="zdesc">${s.zDesc[2]}</td></tr>
+  </table>`;
+}
+
+/* ── TAB: FUNDAMENTALS ── */
+function renderEquity(){
+  const s=selStk;
+  const cls=(v,lo,hi)=>v>=hi?'green':v>=lo?'amber':'red';
+  document.getElementById('rightPanel').innerHTML=`<div class="detail-wrap">
+    ${heroHTML(s)}
+    <div class="sec-hd">Fundamentals</div>
+    <table class="data-table">
+      <tr><th>Metric</th><th class="r">Value</th><th class="r">Signal</th></tr>
+      <tr><td class="label">P/E Ratio</td>        <td class="val">${s.pe}x</td>  <td class="${s.pe<25?'green':s.pe<50?'amber':'red'}">${s.pe<25?'Cheap':s.pe<50?'Fair':'Premium'}</td></tr>
+      <tr><td class="label">P/B Ratio</td>        <td class="val">${s.pb}x</td>  <td class="${s.pb<3?'green':s.pb<8?'amber':'red'}">${s.pb<3?'Cheap':s.pb<8?'Fair':'Rich'}</td></tr>
+      <tr><td class="label">ROE</td>               <td class="val">${s.roe}%</td> <td class="${s.roe>20?'green':s.roe>12?'amber':'red'}">${s.roe>20?'Strong':s.roe>12?'Avg':'Weak'}</td></tr>
+      <tr><td class="label">EPS Growth YoY</td>   <td class="val">${s.epsG}%</td><td class="${cls(s.epsG,10,20)}">${s.epsG>20?'Strong':s.epsG>10?'Steady':'Slow'}</td></tr>
+      <tr><td class="label">Revenue Growth</td>   <td class="val">${s.revG}%</td><td class="${cls(s.revG,10,20)}">${s.revG>20?'Strong':s.revG>10?'Steady':'Slow'}</td></tr>
+      <tr><td class="label">Net Profit Margin</td><td class="val">${s.npm}%</td> <td class="${s.npm>20?'green':s.npm>10?'amber':'red'}">${s.npm>20?'Fat':s.npm>10?'Good':'Thin'}</td></tr>
+      <tr><td class="label">EPS (TTM)</td>        <td class="val">₹${s.eps}</td> <td class="val">—</td></tr>
+      <tr><td class="label">Promoter Holding</td> <td class="val">${s.promoter>0?s.promoter+'%':'Float'}</td><td class="${s.promoter>50?'green':s.promoter>25?'amber':'red'}">${s.promoter>50?'High':s.promoter>25?'Moderate':s.promoter===0?'Public':'Low'}</td></tr>
+      <tr><td class="label">Dividend Yield</td>   <td class="val">${s.div}%</td> <td class="${s.div>3?'green':s.div>1?'amber':'red'}">${s.div>3?'Rich':s.div>1?'Decent':'Low'}</td></tr>
+      <tr><td class="label">Debt</td>              <td class="val">${s.debt}</td> <td class="${s.debt==='Zero'||s.debt==='N/A'?'green':'amber'}">${s.debt==='Zero'?'Clean':s.debt==='N/A'?'Bank':'Watch'}</td></tr>
+      <tr><td class="label">Market Cap</td>        <td class="val" colspan="2">${s.mcap}</td></tr>
+    </table>
+    ${zoneRows(s)}
+  </div>`;
+}
+
+/* ── TAB: TECHNICALS ── */
+function renderTech(){
+  const s=selStk;
+  const bbPos = ((s.ltp-s.bb_l)/(s.bb_u-s.bb_l)*100).toFixed(0);
+  const macdBull = s.macd > s.signal;
+  document.getElementById('rightPanel').innerHTML=`<div class="detail-wrap">
+    ${heroHTML(s)}
+    <div class="sec-hd">Indicators Snapshot</div>
+    <div class="tech-row">
+      <div class="tech-pill">
+        <div class="tech-pill-label">RSI (14)</div>
+        <div class="tech-pill-val" style="color:${s.rsi<35?'#27ae60':s.rsi>65?'#e74c3c':'#d4a017'}">${s.rsi}</div>
+        <div class="tech-pill-sig ${s.rsi<35?'sig-buy':s.rsi>65?'sig-sell':'sig-neut'}">${s.rsi<35?'Oversold':s.rsi>65?'Overbought':'Neutral'}</div>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-label">MACD</div>
+        <div class="tech-pill-val" style="color:${macdBull?'#27ae60':'#e74c3c'}">${s.macd}</div>
+        <div class="tech-pill-sig ${macdBull?'sig-buy':'sig-sell'}">${macdBull?'Bullish':'Bearish'}</div>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-label">BB Position</div>
+        <div class="tech-pill-val" style="color:${bbPos<25?'#27ae60':bbPos>75?'#e74c3c':'#d4a017'}">${bbPos}%</div>
+        <div class="tech-pill-sig ${bbPos<25?'sig-buy':bbPos>75?'sig-sell':'sig-neut'}">${bbPos<25?'Near lower':bbPos>75?'Near upper':'Mid-range'}</div>
+      </div>
+      <div class="tech-pill">
+        <div class="tech-pill-label">Volume</div>
+        <div class="tech-pill-val" style="color:#888">${s.vol}</div>
+        <div class="tech-pill-sig sig-neut">vs avg</div>
+      </div>
+    </div>
+
+    <div class="sec-hd">Moving Averages</div>
+    <table class="data-table">
+      <tr><th>MA Level</th><th class="r">Price</th><th class="r">LTP vs MA</th><th class="r">Signal</th></tr>
+      <tr><td class="label">EMA 20</td> <td class="val">₹${s.ema20.toLocaleString('en-IN')}</td><td class="${s.ltp>s.ema20?'green':'red'}">${s.ltp>s.ema20?'Above ↑':'Below ↓'}</td><td class="${s.ltp>s.ema20?'green':'red'}">${s.ltp>s.ema20?'Bullish':'Bearish'}</td></tr>
+      <tr><td class="label">EMA 50</td> <td class="val">₹${s.ema50.toLocaleString('en-IN')}</td><td class="${s.ltp>s.ema50?'green':'red'}">${s.ltp>s.ema50?'Above ↑':'Below ↓'}</td><td class="${s.ltp>s.ema50?'green':'red'}">${s.ltp>s.ema50?'Bullish':'Bearish'}</td></tr>
+      <tr><td class="label">EMA 200</td><td class="val">₹${s.ema200.toLocaleString('en-IN')}</td><td class="${s.ltp>s.ema200?'green':'red'}">${s.ltp>s.ema200?'Above ↑':'Below ↓'}</td><td class="${s.ltp>s.ema200?'green':'red'}">${s.ltp>s.ema200?'Bullish':'Bearish'}</td></tr>
+    </table>
+
+    <div class="sec-hd">Bollinger Bands</div>
+    <table class="data-table">
+      <tr><th>Band</th><th class="r">Level</th><th class="r">Distance from LTP</th></tr>
+      <tr><td class="label">Upper Band</td><td class="val">₹${s.bb_u.toLocaleString('en-IN')}</td><td class="red">+${((s.bb_u-s.ltp)/s.ltp*100).toFixed(1)}%</td></tr>
+      <tr><td class="label">LTP</td>       <td class="val" style="color:#d4a017">₹${s.ltp.toLocaleString('en-IN')}</td><td class="amber">${bbPos}% of BB range</td></tr>
+      <tr><td class="label">Lower Band</td><td class="val">₹${s.bb_l.toLocaleString('en-IN')}</td><td class="green">-${((s.ltp-s.bb_l)/s.ltp*100).toFixed(1)}%</td></tr>
+    </table>
+    ${zoneRows(s)}
+  </div>`;
+}
+
+/* ── TAB: OPTIONS ── */
+function renderOpts(){
+  const s=selStk;
+  const ce1=Math.round(s.atm/100)*100;
+  const ce2=Math.round(s.atm*1.05/100)*100;
+  const pe1=Math.round(s.atm*0.95/100)*100;
+  document.getElementById('rightPanel').innerHTML=`<div class="detail-wrap">
+    ${heroHTML(s)}
+    <div class="sec-hd">Options Snapshot</div>
+    <table class="data-table">
+      <tr><th>Metric</th><th class="r">Value</th><th class="r">Read</th></tr>
+      <tr><td class="label">ATM Strike</td><td class="val">${s.atm.toLocaleString('en-IN')}</td><td class="amber">Reference</td></tr>
+      <tr><td class="label">IV %</td>      <td class="val">${s.iv}%</td><td class="${s.iv>35?'red':s.iv>20?'amber':'green'}">${s.iv>35?'High — sell premium':s.iv>20?'Moderate':'Low — buy options'}</td></tr>
+      <tr><td class="label">PCR (OI)</td>  <td class="val">${s.pcr}</td><td class="${s.pcr>1.1?'green':s.pcr<0.7?'red':'amber'}">${s.pcr>1.1?'Bullish bias':s.pcr<0.7?'Bearish bias':'Neutral'}</td></tr>
+    </table>
+
+    <div class="sec-hd">Strategy Scenarios</div>
+    <table class="data-table">
+      <tr><th>Strategy</th><th class="r">Strikes</th><th class="r">Best when</th></tr>
+      <tr><td class="label">Bear Call Spread</td><td class="val">Sell ${ce1} / Buy ${ce2} CE</td><td class="amber">IV high, neutral-bearish</td></tr>
+      <tr><td class="label">Naked CE Sell</td>   <td class="val">Sell ${ce2} CE</td>             <td class="red">IV > 30% only</td></tr>
+      <tr><td class="label">PE Buy</td>           <td class="val">Buy ${pe1} PE</td>              <td class="green">Momentum breakdown</td></tr>
+    </table>
+
+    <div class="sec-hd">Bear Call Spread Mechanics</div>
+    <table class="data-table">
+      <tr><th>Item</th><th class="r">Detail</th></tr>
+      <tr><td class="label">Max Profit</td>          <td class="green">Net premium collected</td></tr>
+      <tr><td class="label">Max Loss</td>            <td class="red">Spread width − net premium</td></tr>
+      <tr><td class="label">Breakeven</td>           <td class="amber">Sell strike + net premium</td></tr>
+      <tr><td class="label">Expires worthless if</td><td class="green">LTP &lt; ${ce1} at expiry</td></tr>
+      <tr><td class="label">Exit rule</td>           <td class="amber">50% premium decay → exit</td></tr>
+      <tr><td class="label">Stop loss</td>           <td class="red">2× premium received</td></tr>
+    </table>
+    ${zoneRows(s)}
+  </div>`;
+}
+
+/* ── TAB: AI ANALYSIS ── */
+async function renderAI(){
+  const s=selStk;
+  document.getElementById('rightPanel').innerHTML=`<div class="detail-wrap">
+    ${heroHTML(s)}
+    <div class="sec-hd">AI Analysis <span style="color:#2a2a2a;font-size:9px">Claude API</span></div>
+    <div class="ai-box">
+      <div class="ai-loading"><div class="pulse"></div>Analysing ${s.sym}…</div>
+    </div>
+  </div>`;
+
+  const prompt = `You are a concise Indian equity analyst. Analyse ${s.sym} (${s.name}) with these data points:
+LTP ₹${s.ltp} | Chg ${s.chg}% | 52W ₹${s.l52}–₹${s.h52}
+PE ${s.pe}x | PB ${s.pb}x | ROE ${s.roe}% | EPS growth ${s.epsG}% | Rev growth ${s.revG}%
+Net margin ${s.npm}% | Promoter ${s.promoter}% | Div yield ${s.div}% | Debt ${s.debt}
+RSI ${s.rsi} | EMA20 ${s.ema20} | EMA50 ${s.ema50} | EMA200 ${s.ema200}
+MACD ${s.macd} vs Signal ${s.signal} | BB ${s.bb_l}–${s.bb_u}
+GTT zones Z1 ₹${s.zones[0]} / Z2 ₹${s.zones[1]} / Z3 ₹${s.zones[2]}
+Trader note: "${notes[s.sym]||s.note}"
+
+Respond with exactly 4 labelled sections. Each section title on its own line in ALL CAPS followed by a colon. Then 2–3 sentences. No bullet points. Under 200 words total.
+
+CURRENT RELEVANCE:
+TECHNICAL READ:
+FUNDAMENTAL VERDICT:
+TRADE RECOMMENDATION:`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const txt = data.content?.find(b=>b.type==='text')?.text || '';
+    const sections = txt.split(/\n(?=[A-Z ]+:)/).filter(Boolean);
+    let html = '';
+    sections.forEach(sec=>{
+      const nl = sec.indexOf('\n');
+      const title = nl>-1 ? sec.slice(0,nl).replace(':','') : sec;
+      const body  = nl>-1 ? sec.slice(nl+1).trim() : '';
+      if(body) html += `<div style="margin-bottom:12px"><div class="ai-section-title">${title}</div><div class="ai-section-body">${body}</div></div>`;
+    });
+    document.querySelector('.ai-box').innerHTML = html || `<div class="ai-section-body">${txt}</div>`;
+  } catch(err){
+    document.querySelector('.ai-box').innerHTML = `<span style="color:#555">Analysis unavailable. Check API connectivity.</span>`;
+  }
+}
+
+/* ── TAB: NOTES ── */
+function renderNotes(){
+  const s=selStk;
+  document.getElementById('rightPanel').innerHTML=`<div class="detail-wrap">
+    ${heroHTML(s)}
+    <div class="sec-hd">Trade Notes</div>
+    <textarea class="note-area" id="noteInput" oninput="notes['${s.sym}']=this.value" placeholder="Thesis, levels, observations…">${notes[s.sym]||s.note||''}</textarea>
+    ${zoneRows(s)}
+  </div>`;
+}
+
+/* ── SECTOR LIST ── */
+function renderSectorList(){
+  const sec=selSec, stocks=getStocks(sec);
+  const sc={watching:'#2a2a2a',gtt:'#d4a017',holding:'#27ae60',avoid:'#e74c3c'};
+  const sl={watching:'#888',  gtt:'#d4a017',holding:'#27ae60',avoid:'#e74c3c'};
+  document.getElementById('rightPanel').innerHTML=`<div class="detail-wrap">
+    <div style="color:${sec.accent};font-size:18px;font-weight:700;margin-bottom:4px">${sec.label}</div>
+    <div style="font-size:10px;color:#444;margin-bottom:16px;text-transform:uppercase;letter-spacing:0.08em">${stocks.length} stocks tracked — click to drill in</div>
+    <table class="data-table">
+      <tr><th>Symbol</th><th>Name</th><th class="r">LTP</th><th class="r">Chg%</th><th class="r">Status</th></tr>
+      ${stocks.map(s=>`
+      <tr class="sector-stock-row" onclick="clickStock('${s.sym}')">
+        <td style="color:#ddd;font-weight:600">${s.sym}</td>
+        <td style="color:#555;font-size:10px">${s.name}</td>
+        <td class="val">₹${s.ltp.toLocaleString('en-IN')}</td>
+        <td class="${s.chg>=0?'green':'red'}">${s.chg>=0?'+':''}${s.chg}%</td>
+        <td style="text-align:right"><span style="font-size:9px;padding:3px 8px;border-radius:3px;font-weight:600;color:${sl[s.status]};background:${sc[s.status]}18;border:1px solid ${sc[s.status]}44">${s.status.toUpperCase()}</span></td>
+      </tr>`).join('')}
+    </table>
+  </div>`;
+}
+
+/* ── HELPERS ── */
+function reset(){
+  selSec=null; selStk=null; renderEmpty(); drawWheel();
+}
+function renderEmpty(){
+  document.getElementById('rightPanel').innerHTML=`<div class="empty" style="height:100%">
+    <div class="empty-ico">◎</div>
+    <div style="font-size:13px;color:#444">Select a sector, then a stock</div>
+    <div style="font-size:10px;color:#333;margin-top:6px">Status dots: 🟡 GTT &nbsp; 🟢 Holding &nbsp; ⚫ Watching &nbsp; 🔴 Avoid</div>
+  </div>`;
+}
+function clickStock(sym){
+  if(!selSec) return;
+  selStk = getStocks(selSec).find(s=>s.sym===sym);
+  if(selStk){ renderTab(); drawWheel(); }
+}
+function setStatus(status){
+  if(!selStk) return;
+  selStk.status=status; renderTab(); drawWheel();
+}
+
+/* ── INIT ── */
+drawWheel();
+</script>
+</body>
+</html>
