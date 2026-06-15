@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Check, AlertTriangle, TrendingUp, Brain, Shield, Lock, ExternalLink, Newspaper } from 'lucide-react';
 
+import FridayReview from "./FridayReview";  
+
 const C = {
   bg: '#f8fafc',
   white: '#ffffff',
@@ -113,6 +115,7 @@ export default function App() {
     { id: 'trade', label: '⚡ Before Trade', locked: !mvComplete },
     { id: 'posttrade', label: '📝 Post-Trade', locked: false },
     { id: 'impulse', label: '🛡 Impulse', locked: false },
+    { id: 'friday', label: '📋 Friday Review', locked: false },
   ];
 
   return (
@@ -352,6 +355,9 @@ export default function App() {
             </div>
           </div>
         )}
+        
+        {/* ── FRIDAY REVIEW ── */}
+        {activeTab === 'friday' && <FridayReview />}
 
         {/* ── NEWS IMPACT ── */}
         {activeTab === 'news' && <NewsImpact />}
