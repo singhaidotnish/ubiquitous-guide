@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Check, AlertTriangle, TrendingUp, Brain, Shield, Lock, ExternalLink, Newspaper } from 'lucide-react';
+import { Check, AlertTriangle, TrendingUp, Brain, Shield, Lock, ExternalLink, Newspaper, Lightbulb } from 'lucide-react';
 
-import FridayReview from "./FridayReview";  
+import FridayReview from "./FridayReview";
+import { fetchInsights, getTodayInsight } from "./insights";
 
 const C = {
   bg: '#f8fafc',
@@ -74,6 +75,17 @@ const linkPill = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('marketview');
+  const [insights, setInsights] = useState([]);
+  const [insightsLoaded, setInsightsLoaded] = useState(false);
+
+  React.useEffect(() => {
+    fetchInsights().then(data => {
+      setInsights(data);
+      setInsightsLoaded(true);
+    });
+  }, []);
+
+  const todayInsight = getTodayInsight(insights);
   const [trend, setTrend] = useState(null);
   const [vix, setVix] = useState(null);
   const [eventsChecked, setEventsChecked] = useState(false);
@@ -116,6 +128,7 @@ export default function App() {
     { id: 'posttrade', label: '📝 Post-Trade', locked: false },
     { id: 'impulse', label: '🛡 Impulse', locked: false },
     { id: 'friday', label: '📋 Friday Review', locked: false },
+    { id: 'insights', label: '💡 Insights', locked: false },
   ];
 
   return (
@@ -139,6 +152,18 @@ export default function App() {
             <div style={{ fontSize: 13, color: '#b45309' }}>No thesis = no trade. Complete Market View to unlock the rest.</div>
           </div>
         </div>
+
+        {/* Daily Insight Banner */}
+        {insightsLoaded && todayInsight && (
+          <div onClick={() => setActiveTab('insights')}
+            style={{ background: C.purpleBg, borderLeft: `4px solid ${C.purple}`, borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10, cursor: 'pointer' }}>
+            <Lightbulb style={{ color: C.purple, width: 18, height: 18, flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <div style={{ fontWeight: 600, color: C.purple, fontSize: 14 }}>Today's Insight — {todayInsight.title}</div>
+              <div style={{ fontSize: 13, color: C.purple, opacity: 0.8 }}>{todayInsight.body}</div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div style={{ display: 'flex', overflowX: 'auto', gap: 4, marginBottom: 16, paddingBottom: 4 }}>
@@ -355,9 +380,12 @@ export default function App() {
             </div>
           </div>
         )}
-        
+       
         {/* ── FRIDAY REVIEW ── */}
         {activeTab === 'friday' && <FridayReview />}
+
+        {/* ── INSIGHTS ARCHIVE ── */}
+        {activeTab === 'insights' && <InsightsArchive insights={insights} todayId={todayInsight?.id} />}
 
         {/* ── NEWS IMPACT ── */}
         {activeTab === 'news' && <NewsImpact />}
@@ -488,6 +516,49 @@ function NewsImpact() {
           </div>
         );
       })()}
+    </div>
+  );
+}
+
+function InsightsArchive({ insights, todayId }) {
+  const tagColor = {
+    Scanners: { bg: C.blueBg, border: C.blueBorder, text: C.blue },
+    RSI: { bg: C.tealBg, border: C.tealBorder, text: C.teal },
+    EMA: { bg: C.orangeBg, border: '#fdba74', text: C.orange },
+    Discipline: { bg: C.purpleBg, border: C.purpleBorder, text: C.purple },
+  };
+
+  if (!insights || insights.length === 0) {
+    return (
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 }}>Insights Archive</div>
+        <div style={{ fontSize: 13, color: C.muted }}>Loading...</div>
+      </div>
+    );
+  }
+
+  const sorted = [...insights].sort((a, b) => b.id - a.id);
+
+  return (
+    <div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 }}>Insights Archive</div>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>Every tip that's shown on your homepage banner, all in one place.</div>
+
+      {sorted.map(insight => {
+        const tc = tagColor[insight.tag] || tagColor.Discipline;
+        const isToday = insight.id === todayId;
+        return (
+          <div key={insight.id}
+            style={{ ...card, background: isToday ? tc.bg : C.white, border: `1px solid ${isToday ? tc.border : C.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 20, background: tc.bg, color: tc.text, border: `1px solid ${tc.border}` }}>{insight.tag}</span>
+              {isToday && <span style={{ fontSize: 11, fontWeight: 600, color: C.purple }}>★ Today</span>}
+            </div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: C.text, marginBottom: 4 }}>{insight.title}</div>
+            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>{insight.body}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
