@@ -9,6 +9,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 
+@media (max-width: 768px) {
+  html, body { height: auto; overflow-y: auto; }
+}
+
 /* ── THEME VARIABLES ── */
 :root {
   --bg-body:    #0a0a0a;
@@ -94,6 +98,12 @@ body { font-family: 'JetBrains Mono', monospace; background: var(--bg-body); col
 .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 .left-panel { width: 360px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-left); transition: background 0.2s; }
 .right-panel { flex: 1; background: var(--bg-right); border-left: 1px solid var(--border); overflow-y: auto; min-width: 0; transition: background 0.2s, border-color 0.2s; }
+
+@media (max-width: 768px) {
+  .main { flex-direction: column; overflow: visible; height: auto; }
+  .left-panel { width: 100%; height: 360px; flex-shrink: 0; }
+  .right-panel { width: 100%; flex: none; overflow-y: visible; border-left: none; border-top: 1px solid var(--border); }
+}
 
 canvas { cursor: pointer; display: block; }
 
@@ -691,7 +701,9 @@ function setStatus(status){
 }
 
 /* ── THEME TOGGLE ── */
-let isDark = true;
+let isDark = false;
+document.body.classList.add('light');
+document.getElementById('themeBtn').textContent = '☀️';
 function toggleTheme(){
   isDark = !isDark;
   document.body.classList.toggle('light', !isDark);
