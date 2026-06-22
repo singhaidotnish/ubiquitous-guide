@@ -78,6 +78,11 @@ body { font-family: 'JetBrains Mono', monospace; background: var(--bg-body); col
   border-bottom: 1px solid var(--border); padding: 0 14px; flex-shrink: 0; gap: 0;
   transition: background 0.2s, border-color 0.2s;
 }
+.tab-scroll {
+  display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; flex: 1; min-width: 0;
+}
+.tab-scroll::-webkit-scrollbar { display: none; }
 .top-logo { font-size: 11px; color: #d4a017; font-weight: 700; letter-spacing: 0.08em; margin-right: 20px; white-space: nowrap; }
 .tab {
   padding: 11px 14px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
@@ -88,7 +93,7 @@ body { font-family: 'JetBrains Mono', monospace; background: var(--bg-body); col
 
 /* Theme toggle button */
 .theme-btn {
-  margin-left: auto; background: none; border: 1px solid var(--border);
+  margin-left: 10px; background: none; border: 1px solid var(--border);
   border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 14px;
   line-height: 1; color: var(--text-muted); transition: all 0.15s; flex-shrink: 0;
 }
@@ -217,11 +222,13 @@ body.light .z3 { color: #1a7a42; }
 
 <div class="top-bar">
   <div class="top-logo">◎ SINGFORGE TOOLS</div>
-  <div class="tab active" id="tabEq"    onclick="switchTab('eq')">Fundamentals</div>
-  <div class="tab"        id="tabTech"  onclick="switchTab('tech')">Technicals</div>
-  <div class="tab"        id="tabOpts"  onclick="switchTab('opts')">Options</div>
-  <div class="tab"        id="tabAI"    onclick="switchTab('ai')">AI Analysis</div>
-  <div class="tab"        id="tabNotes" onclick="switchTab('notes')">Notes</div>
+  <div class="tab-scroll">
+    <div class="tab active" id="tabEq"    onclick="switchTab('eq')">Fundamentals</div>
+    <div class="tab"        id="tabTech"  onclick="switchTab('tech')">Technicals</div>
+    <div class="tab"        id="tabOpts"  onclick="switchTab('opts')">Options</div>
+    <div class="tab"        id="tabAI"    onclick="switchTab('ai')">AI Analysis</div>
+    <div class="tab"        id="tabNotes" onclick="switchTab('notes')">Notes</div>
+  </div>
   <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
 </div>
 
